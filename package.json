@@ -9,9 +9,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -22,11 +20,11 @@
     ],
     "keybindings": [
       {
-          "command": "autoLabel.addLabel",
-          "key": "ctrl+alt+a",
-          "when": "editorTextFocus"
-        }
-      ]
+        "command": "autoLabel.addLabel",
+        "key": "ctrl+alt+a",
+        "when": "editorTextFocus"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -40,6 +38,7 @@
     "@types/mocha": "^10.0.7",
     "@types/node": "20.x",
     "@types/vscode": "^1.91.0",
+    "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.11.0",
     "@vscode/test-cli": "^0.0.9",
@@ -48,6 +47,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "translate": "^3.0.0"
+    "translate": "^3.0.0",
+    "xml2js": "^0.6.2"
   }
 }
