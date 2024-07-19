@@ -35,9 +35,10 @@ function activate(context) {
     const disposable = vscode.commands.registerCommand('autoLabel.addLabel', async () => {
         const recentDirectories = context.globalState.get(RECENT_DIRECTORIES_KEY, []);
         const lastDirectory = recentDirectories.length > 0 ? recentDirectories[0] : null;
-        const panel = vscode.window.createWebviewPanel('autoLabel', 'Auto Label', vscode.ViewColumn.One, {
-            enableScripts: true
+        const panel = vscode.window.createWebviewPanel('autoLabel', 'BaNaNaLabel', vscode.ViewColumn.One, {
+            enableScripts: true,
         });
+        panel.iconPath = vscode.Uri.file(path.join(context.extensionPath, 'media', 'icon.png'));
         if (lastDirectory && fs.existsSync(lastDirectory)) {
             const files = fs.readdirSync(lastDirectory).filter(file => file.endsWith('.json') || file.endsWith('.xml'));
             panel.webview.html = getWebviewContent(lastDirectory, files, recentDirectories);
@@ -63,6 +64,10 @@ function activate(context) {
             }
             else if (message.command === 'addLabel') {
                 const { label, files, directory } = message;
+                if (!label || files.some((file) => !file.value)) {
+                    vscode.window.showErrorMessage('The label name and value cannot be null.');
+                    return;
+                }
                 for (const { file, value } of files) {
                     const absoluteFilePath = path.join(directory, file);
                     if (!fs.existsSync(absoluteFilePath)) {
@@ -76,6 +81,10 @@ function activate(context) {
                             let jsonContent = {};
                             if (fileContent) {
                                 jsonContent = JSON.parse(fileContent);
+                            }
+                            if (jsonContent.hasOwnProperty(label)) {
+                                vscode.window.showErrorMessage(`Label "${label}" already exists in file "${absoluteFilePath}" with value "${jsonContent[label]}".`);
+                                continue;
                             }
                             jsonContent[label] = value;
                             fs.writeFileSync(absoluteFilePath, JSON.stringify(jsonContent, null, 2), 'utf8');
@@ -93,11 +102,16 @@ function activate(context) {
                             if (!xmlContent.root.data) {
                                 xmlContent.root.data = [];
                             }
+                            const existingLabel = xmlContent.root.data.find((item) => item.$.name === label);
+                            if (existingLabel) {
+                                vscode.window.showErrorMessage(`Label "${label}" already exists in file "${absoluteFilePath}" with value "${existingLabel.value}".`);
+                                continue;
+                            }
                             xmlContent.root.data.push({
                                 $: { name: label },
                                 value: value
                             });
-                            const builder = new xml2js_1.Builder({ headless: true, renderOpts: { pretty: true, indent: '  ', newline: '\n' } });
+                            const builder = new xml2js_1.Builder({ headless: false, renderOpts: { pretty: true, indent: '  ', newline: '\n' } });
                             const newXmlContent = builder.buildObject(xmlContent);
                             fs.writeFileSync(absoluteFilePath, newXmlContent, 'utf8');
                         }
@@ -123,13 +137,85 @@ function getInitialWebviewContent(recentDirectories) {
 		<head>
 			<meta charset="UTF-8">
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Auto Label</title>
+			<title>BaNaNaLabel</title>
+			<script src="https://kit.fontawesome.com/bdac89dd37.js" crossorigin="anonymous"></script>
+			<style>
+			*{
+			font-size: 16px;
+			margin-top: 5px;
+			}
+			body{
+				background-color:black;
+			}
+			#directoryDiv {
+				display: flex;
+				align-items: center;
+			}
+			.dirElem {
+				margin-right: 10px;
+				padding: 5px;
+			}
+		    h1{
+			font-size: 36px;
+			}
+			#folderIcon {
+				margin-left: 5px;
+			}
+           #LblNameDiv{
+			display:flex;
+			flex-direction:column;
+			max-width:200px;
+			}
+			#labelName{
+			max-width: 150px;
+			resize: horizontal;
+			}
+			button,input,select{
+			color: hsla(207, 11%, 39%, 1);;
+			background-color:white;
+			border-color: hsla(207, 11%, 39%, 1);
+			border-style:solid;
+			border-width: 1px;
+			border-radius: 5px;
+			padding: max(5px);
+
+			}
+			select{
+			padding:5px;
+			max-width:140px;
+			}
+			select,input{
+			max-width:80px;
+			}
+			select:hover ,input:hover,button:hover,button:active{
+				background-color:lightgrey;
+				color : black;
+			}
+			#AddBtn{
+			width: 100px;
+		    color:hsla(50, 100%, 52%, 1);
+			border-color:hsla(50, 100%, 52%, 1);
+			background-color:black;
+			}
+			#AddBtn:hover,#AddBtn:active{
+			background-color:hsla(50, 100%, 52%, 1);
+			color:black;
+			border-color: black;
+			}
+			#title{
+			color: hsla(50, 100%, 52%, 1);
+			}
+			input{
+			min-width: 180px
+			max-width: 400px;
+			}
+		</style>
 		</head>
 		<body>
-			<h1>Auto Label</h1>
-			<button onclick="selectDirectory()">Seleziona Directory</button>
+			<h1 id="title">BaNaNaLabel</h1>
+			<button onclick="selectDirectory()" tabindex="-1">Select Directory <i class="fa-solid fa-folder"></i></button>
 			<select id="recentDirectories" onchange="selectRecentDirectory()">
-				<option value="">Seleziona una directory recente</option>
+				<option value="">Recent folders</option>
 				${recentDirsOptions}
 			</select>
 			<script>
@@ -151,6 +237,13 @@ function getInitialWebviewContent(recentDirectories) {
 						});
 					}
 				}
+
+				document.addEventListener('keydown', function(event) {
+					if (event.key === 'Enter') {
+						event.preventDefault();
+						document.getElementById('AddBtn').click();
+					}
+				});
 			</script>
 		</body>
 		</html>
@@ -158,9 +251,9 @@ function getInitialWebviewContent(recentDirectories) {
 }
 function getWebviewContent(directory, files, recentDirectories) {
     const fileCheckboxes = files.map(file => `
-		<input type="checkbox" id="${file}" name="files" value="${file}" onchange="toggleInput('${file}')">
+		<input type="checkbox" id="${file}" name="files" value="${file}" onchange="toggleInput('${file}')" onkeydown="handleCheckboxKeydown(event, '${file}')">
 		<label for="${file}">${file}</label>
-		<input type="text" id="value_${file}" name="value_${file}" placeholder="Valore Label" style="display:none;"><br>
+		<input type="text" id="value_${file}" name="value_${file}" placeholder="Label Value" style="display:none; resize: horizontal;" onblur="checkInput('${file}')" onkeydown="handleInputKeydown(event, '${file}')"><br>
 	`).join('');
     const recentDirsOptions = recentDirectories.map(dir => `<option value="${dir}">${dir}</option>`).join('');
     return `
@@ -169,22 +262,97 @@ function getWebviewContent(directory, files, recentDirectories) {
 		<head>
 			<meta charset="UTF-8">
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Auto Label</title>
+			<title>BaNaNaLabel</title>
+			<script src="https://kit.fontawesome.com/bdac89dd37.js" crossorigin="anonymous"></script>
+			<style>
+			*{
+			font-size: 16px;
+			margin-top: 5px;
+			}
+			body{
+				background-color:black;
+			}
+			#directoryDiv {
+				display: flex;
+				align-items: center;
+			}
+			.dirElem {
+				margin-right: 10px;
+				padding: 5px;
+			}
+		    h1{
+			font-size: 36px;
+			}
+			#folderIcon {
+				margin-left: 5px;
+			}
+           #LblNameDiv{
+			display:flex;
+			flex-direction:column;
+			max-width:200px;
+			}
+			#labelName{
+			max-width: 150px;
+			resize: horizontal;
+			}
+			button,input,select{
+			color: hsla(207, 11%, 39%, 1);;
+			background-color:white;
+			border-color: hsla(207, 11%, 39%, 1);
+			border-style:solid;
+			border-width: 1px;
+			border-radius: 5px;
+			padding: max(5px);
+
+			}
+			select{
+			padding:5px;
+			max-width:140px;
+			}
+			select,input{
+			max-width:80px;
+			}
+			select:hover ,input:hover,button:hover,button:active{
+				background-color:lightgrey;
+				color : black;
+			}
+			#AddBtn{
+			width: 100px;
+		    color:hsla(50, 100%, 52%, 1);
+			border-color:hsla(50, 100%, 52%, 1);
+			background-color:black;
+			}
+			#AddBtn:hover,#AddBtn:active{
+			background-color:hsla(50, 100%, 52%, 1);
+			color:black;
+			border-color: black;
+			}
+			#title{
+			color: hsla(50, 100%, 52%, 1);
+			}
+			input{
+			min-width: 180px
+			max-width: 400px;
+			}
+		</style>
 		</head>
 		<body>
-			<h1>Auto Label</h1>
-			<p>Directory selezionata: ${directory}</p>
-			<button onclick="selectDirectory()">Cambia Directory</button>
-			<select id="recentDirectories" onchange="selectRecentDirectory()">
-				<option value="">Seleziona una directory recente</option>
-				${recentDirsOptions}
-			</select>
+			<h1 id="title">BaNaNaLabel</h1>
+			<div id="directoryDiv">
+			<button class="dirElem" onclick="selectDirectory()" tabindex="-1"> ${directory} <i id="folderIcon" class="fa-regular fa-folder"></i></button>
+		<select class="dirElem" id="recentDirectories" onchange="selectRecentDirectory()">
+			<option value="">Recent folders</i></option>
+			${recentDirsOptions}
+		</select>
+		</div>
 			<form id="labelForm">
-				<label for="labelName">Nome Label:</label>
-				<input type="text" id="labelName" name="labelName"><br><br>
-				<label for="files">File influenzati:</label><br>
+			<div id="LblNameDiv">
+				<label  for="labelName">Label name</label>
+				<input type="text" id="labelName" placeholder="LabelName" name="labelName" style="resize: horizontal;"><br><br>
+				</div>
+				<label for="files">File list</label><br>
 				${fileCheckboxes}
-				<button type="button" onclick="addLabel()">Aggiungi Label</button>
+				<button id="AddBtn" type="button" onclick="addLabel()" tabindex="-1">Add Label</button>
 			</form>
 			<script>
 				const vscode = acquireVsCodeApi();
@@ -209,7 +377,52 @@ function getWebviewContent(directory, files, recentDirectories) {
 				function toggleInput(file) {
 					const input = document.getElementById('value_' + file);
 					input.style.display = input.style.display === 'none' ? 'inline' : 'none';
+					if (input.style.display === 'inline') {
+						input.focus();
+					}
 				}
+
+				function checkInput(file) {
+					const input = document.getElementById('value_' + file);
+					const checkbox = document.getElementById(file);
+					if (!input.value) {
+						checkbox.checked = false;
+						input.style.display = 'none';
+					}
+				}
+
+				function handleCheckboxKeydown(event, file) {
+					if (event.key === 'Tab') {
+						event.preventDefault();
+						const input = document.getElementById('value_' + file);
+						const checkbox = document.getElementById(file);
+						if (checkbox.checked) {
+							input.focus();
+						} else {
+							checkbox.checked = true;
+							input.style.display = 'inline';
+							input.focus();
+						}
+					}
+				}
+
+				function handleInputKeydown(event, file) {
+					if (event.key === 'Tab') {
+						const input = document.getElementById('value_' + file);
+						const checkbox = document.getElementById(file);
+						if (!input.value) {
+							checkbox.checked = false;
+							input.style.display = 'none';
+						}
+					}
+				}
+
+				document.addEventListener('keydown', function(event) {
+					if (event.key === 'Enter') {
+						event.preventDefault();
+						document.getElementById('AddBtn').click();
+					}
+				});
 
 				function addLabel() {
 					const label = document.getElementById('labelName').value;
@@ -217,6 +430,14 @@ function getWebviewContent(directory, files, recentDirectories) {
 						file: checkbox.value,
 						value: document.getElementById('value_' + checkbox.value).value
 					}));
+
+					if (!label || files.some(file => !file.value)) {
+						vscode.postMessage({
+							command: 'showError',
+							message: 'The label name and value cannot be null.'
+						});
+						return;
+					}
 
 					vscode.postMessage({
 						command: 'addLabel',

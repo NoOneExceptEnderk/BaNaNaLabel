@@ -1,6 +1,6 @@
 {
-  "name": "autolabel",
-  "displayName": "AutoLabel",
+  "name": "banana-label",
+  "displayName": "BaNaNaLabel",
   "description": "Automatically adds labels to JSON files with translated values",
   "version": "0.0.1",
   "engines": {
@@ -11,6 +11,7 @@
   ],
   "activationEvents": [],
   "main": "./out/extension.js",
+  "icon": "media/icon.png",
   "contributes": {
     "commands": [
       {

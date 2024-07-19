@@ -1,35 +1,30 @@
-# autoLabel README
+# BaNaNalabel README
 
-This is the README for your extension "autoLabel". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "BaNaNalabel". This extension helps you automatically add labels to JSON and XML files with translated values.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
+- Automatically add labels to JSON and XML files.
+- Supports selecting directories and filtering files.
+- Keeps track of recently used directories.
+- Provides a user-friendly webview interface for managing labels.
 > Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Visual Studio Code version 1.91.0 or higher.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `autoLabel.enable`: Enable/disable this extension.
+* `autoLabel.recentDirectories`: List of recently used directories.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- The extension does not handle large XML files efficiently.
+- JSON files with complex structures might not be processed correctly.
 
 ## Release Notes
 
@@ -37,15 +32,15 @@ Users appreciate release notes as you update your extension.
 
 ### 1.0.0
 
-Initial release of ...
+Initial release of autoLabel.
 
 ### 1.0.1
 
-Fixed issue #.
+Fixed issue with directory selection.
 
 ### 1.1.0
 
-Added features X, Y, and Z.
+Added support for XML files and improved error handling.
 
 ---
 
