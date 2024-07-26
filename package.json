@@ -2,7 +2,8 @@
   "name": "banana-label",
   "displayName": "BaNaNaLabel",
   "description": "Automatically adds labels to JSON files with translated values",
-  "version": "0.0.1",
+  "publisher": "ArmandoBarbieri",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.91.0"
   },
@@ -15,13 +16,13 @@
   "contributes": {
     "commands": [
       {
-        "command": "autoLabel.addLabel",
+        "command": "BaNaNaLabel.addLabel",
         "title": "Add Label"
       }
     ],
     "keybindings": [
       {
-        "command": "autoLabel.addLabel",
+        "command": "BaNaNaLabel.addLabel",
         "key": "ctrl+alt+a",
         "when": "editorTextFocus"
       }
@@ -48,7 +49,12 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "jsonc-parser": "^3.3.1",
     "translate": "^3.0.0",
     "xml2js": "^0.6.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NoOneExceptEnderk/BaNaNaLabel.git"
   }
 }
